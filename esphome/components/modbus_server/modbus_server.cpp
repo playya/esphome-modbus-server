@@ -13,7 +13,14 @@ ModbusServer::ModbusServer() {}
 
 uint32_t ModbusServer::baudRate() { return this->parent_->get_baud_rate(); }
 
-void ModbusServer::setup() { mb.begin(this); }
+void ModbusServer::setup() { 
+    mb.begin(this);
+    if (re_pin_ != nullptr) {
+        re_pin_->digital_write(LOW);
+        ESP_LOGD(TAG, "read(): re_pin_ -> LOW");
+        receiving = true;
+    }
+}
 
 void ModbusServer::set_re_pin(GPIOPin *re_pin) {
     if (re_pin != nullptr) {
