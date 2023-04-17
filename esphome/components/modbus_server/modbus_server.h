@@ -34,11 +34,11 @@ class ModbusServer : public esphome::uart::UARTDevice, public Component, public 
 
   /// @brief Sets the DE pin and toggles it on read/write
   /// @param pin_de is the pin to set LOW when transmitting
-  void set_de_pin(uint8_t pin_de);
+  void set_de_pin(GPIOPin *de_pin);
 
   /// @brief Sets the RE pin and toggles it on read/write
   /// @param pin_re is the pin to set LOW when reading
-  void set_re_pin(uint8_t pin_re);
+  void set_re_pin(GPIOPin *re_pin);
 
   /// @brief Adds a new range of holding registers
   /// @param start_address Address of the first register
@@ -108,10 +108,10 @@ class ModbusServer : public esphome::uart::UARTDevice, public Component, public 
   void flush();
 
  private:
-  uint8_t re_pin;
-  uint8_t de_pin;
-  bool sending;
   ModbusRTU mb;  // ModbusRTU instance, the man behind the curtain
+  GPIOPin *re_pin_{nullptr};
+  GPIOPin *de_pin_{nullptr};
+  bool sending;
 };
 
 }  // namespace modbus_server
