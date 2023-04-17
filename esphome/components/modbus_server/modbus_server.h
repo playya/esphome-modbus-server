@@ -27,6 +27,7 @@ class ModbusServer : public esphome::uart::UARTDevice, public Component, public 
 
   void setup() override;
   void loop() override;
+  void dump_config() override;
   uint32_t baudRate();  // for compatibility with ModbusRTU lib
   /// @brief Sets the slave address for this instance
   /// @param address the slave address this instance will respond as

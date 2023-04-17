@@ -22,6 +22,12 @@ void ModbusServer::setup() {
     }
 }
 
+void ModbusServer::dump_config() {
+    ESP_LOGCONFIG(TAG, "ModbusServer:");
+    LOG_PIN("  RE Pin: ", this->re_pin_);
+    LOG_PIN("  DE Pin: ", this->de_pin_);
+}
+
 void ModbusServer::set_re_pin(GPIOPin *re_pin) {
     if (re_pin != nullptr) {
       re_pin_ = re_pin;
