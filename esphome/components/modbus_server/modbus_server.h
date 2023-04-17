@@ -112,6 +112,7 @@ class ModbusServer : public esphome::uart::UARTDevice, public Component, public 
   GPIOPin *re_pin_{nullptr};
   GPIOPin *de_pin_{nullptr};
   bool sending;
+  bool receiving;
 };
 
 }  // namespace modbus_server

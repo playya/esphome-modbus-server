@@ -73,31 +73,38 @@ void ModbusServer::on_write_input_register(uint16_t address, cbOnReadWrite cb, u
 
 // Stream class implementation:
 size_t ModbusServer::write(uint8_t data) {
-    if (( (re_pin_ != nullptr) || (de_pin_ != nullptr) ) && !sending) {
-        if (re_pin_ != nullptr)
-          re_pin_->digital_write(HIGH);
-          ESP_LOGD(TAG, "write(): re_pin_ -> HIGH");
-        if (de_pin_ != nullptr)
-          de_pin_->digital_write(HIGH);
-          ESP_LOGD(TAG, "write(): de_pin_ -> HIGH");
-    sending = true;
-  }
-  return uart::UARTDevice::write(data);
+    if (( de_pin_ != nullptr ) && !sending) {
+        de_pin_->digital_write(HIGH);
+        ESP_LOGD(TAG, "write(): de_pin_ -> HIGH");
+        sending = true;
+    }
+    return uart::UARTDevice::write(data);
 }
+
+int ModbusServer::read() {
+    if (re_pin_ != nullptr && !receiving) {
+        re_pin_->digital_write(LOW);
+        ESP_LOGD(TAG, "read(): re_pin_ -> LOW");
+        receiving = true;
+    }
+    return uart::UARTDevice::read();
+}
+
 int ModbusServer::available() { return uart::UARTDevice::available(); }
-int ModbusServer::read() { return uart::UARTDevice::read(); }
+//int ModbusServer::read() { return uart::UARTDevice::read(); }
 int ModbusServer::peek() { return uart::UARTDevice::peek(); }
 void ModbusServer::flush() {
     uart::UARTDevice::flush();
-    if (( (re_pin_ != nullptr) || (de_pin_ != nullptr) ) && sending) {
-        if (re_pin_ != nullptr)
-          re_pin_->digital_write(LOW);
-          ESP_LOGD(TAG, "flush(): re_pin_ -> LOW");
-        if (de_pin_ != nullptr)
-          de_pin_->digital_write(LOW);
-          ESP_LOGD(TAG, "flush(): de_pin_ -> LOW");
-    sending = false;
-  }
+    if ( de_pin_ != nullptr  && sending) {
+        de_pin_->digital_write(LOW);
+        ESP_LOGD(TAG, "flush() sending: de_pin_ -> LOW");
+        sending = false;
+    }
+    if ( re_pin_ != nullptr && receiving) {
+        re_pin_->digital_write(HIGH);
+        ESP_LOGD(TAG, "flush() receiving: re_pin_ -> HIGH");
+	receiving = false;
+    }
 }
 
 void ModbusServer::loop() { mb.task(); };
