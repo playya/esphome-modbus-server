@@ -8,12 +8,10 @@ from esphome import pins
 CONF_START_ADDRESS = "start_address"
 CONF_DEFAULT = "default"
 CONF_NUMBER = "number"
-CONF_RE_PIN = "re_pin"
 CONF_DE_PIN = "de_pin"
 CONF_ON_READ = "on_read"
 CONF_ON_WRITE = "on_write"
-CONF_RE_PIN = "re_pin"
-CONF_DE_PIN = "de_pin"
+CONF_FLOW_CONTROL_PIN = "flow_control_pin"
 
 modbus_server_ns = cg.esphome_ns.namespace("modbus_server")
 ModbusDeviceComponent = modbus_server_ns.class_("ModbusServer", cg.Component)
@@ -25,8 +23,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(ModbusDeviceComponent),
             cv.Required(CONF_ADDRESS): cv.positive_int,
-            cv.Optional(CONF_RE_PIN): pins.gpio_output_pin_schema,
-            cv.Optional(CONF_DE_PIN): pins.gpio_output_pin_schema,
+            cv.Optional(CONF_FLOW_CONTROL_PIN): pins.gpio_output_pin_schema,
             cv.Optional("holding_registers"): cv.ensure_list(
                 cv.Schema(
                     {
@@ -68,12 +65,9 @@ async def to_code(config):
     cg.add(server.set_uart_parent(uart))
     cg.add(server.set_address(config[CONF_ADDRESS]))
 
-    if CONF_RE_PIN in config:
-        pin = await gpio_pin_expression(config[CONF_RE_PIN])
-        cg.add(server.set_re_pin(pin))
-    if CONF_DE_PIN in config:
-        pin = await gpio_pin_expression(config[CONF_DE_PIN])
-        cg.add(server.set_de_pin(pin))
+    if CONF_FLOW_CONTROL_PIN in config:
+        pin = await gpio_pin_expression(config[CONF_FLOW_CONTROL_PIN])
+        cg.add(server.set_flow_control_pin(pin))
 
     if "holding_registers" in config:
         for reg in config["holding_registers"]:

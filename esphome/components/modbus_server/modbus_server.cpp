@@ -14,36 +14,20 @@ ModbusServer::ModbusServer() {}
 uint32_t ModbusServer::baudRate() { return this->parent_->get_baud_rate(); }
 
 void ModbusServer::setup() { 
-    mb.begin(this);
-    if (re_pin_ != nullptr) {
-        re_pin_->digital_write(true);
-        ESP_LOGD(TAG, "read(): re_pin_ -> LOW");
-        receiving = true;
-    }
+  if (this->flow_control_pin_ != nullptr) {
+    this->flow_control_pin_->setup();
+  }
+  this->set_re_pin(false);
+  mb.begin(this);
 }
 
 void ModbusServer::dump_config() {
     ESP_LOGCONFIG(TAG, "ModbusServer:");
-    LOG_PIN("  RE Pin: ", this->re_pin_);
-    LOG_PIN("  DE Pin: ", this->de_pin_);
+    LOG_PIN("  Flow Control Pin: ", this->flow_control_pin_);
 }
-
-void ModbusServer::set_re_pin(GPIOPin *re_pin) {
-    if (re_pin != nullptr) {
-      re_pin_ = re_pin;
-      re_pin_->setup();
-      re_pin_->digital_write(false);
-      ESP_LOGD(TAG, "set_re_pin(): re_pin_ -> LOW");
-    }
-}
-
-void ModbusServer::set_de_pin(GPIOPin *de_pin) {
-  if (de_pin != nullptr) {
-    de_pin_ = de_pin;
-    de_pin_->setup();
-    de_pin_->digital_write(false);
-    ESP_LOGD(TAG, "set_de_pin(): de_pin_ -> LOW");
-  }
+float ModbusServer::get_setup_priority() const {
+  // After UART bus
+  return setup_priority::BUS - 1.0f;
 }
 
 void ModbusServer::set_address(uint8_t address) { mb.slave(address); }
@@ -86,45 +70,55 @@ void ModbusServer::on_write_input_register(uint16_t address, cbOnReadWrite cb, u
 
 // Stream class implementation:
 size_t ModbusServer::write(uint8_t data) {
-    if (( de_pin_ != nullptr ) && !sending) {
-        de_pin_->digital_write(true);
-        ESP_LOGD(TAG, "write(): de_pin_ -> HIGH");
-        sending = true;
-    }
-    return uart::UARTDevice::write(data);
+  ESP_LOGD(TAG, "write");
+  this->set_re_pin(true);
+  this->sending = true;
+
+  uart::UARTDevice::write_byte(data);
+
+  return 1;
+}
+size_t ModbusServer::write(const uint8_t *data, size_t size) {
+  ESP_LOGD(TAG, "write array");
+  this->set_re_pin(true);
+  this->sending = true;
+  uart::UARTDevice::write_array(data, size);
+
+  return size;
 }
 
 int ModbusServer::read() {
-    if (re_pin_ != nullptr && !receiving) {
-        re_pin_->digital_write(false);
-        ESP_LOGD(TAG, "read(): re_pin_ -> LOW");
-        receiving = true;
-    }
-    return uart::UARTDevice::read();
+  this->set_re_pin(false);
+  return uart::UARTDevice::read();
 }
 
 int ModbusServer::available() { return uart::UARTDevice::available(); }
 //int ModbusServer::read() { return uart::UARTDevice::read(); }
 int ModbusServer::peek() { return uart::UARTDevice::peek(); }
 void ModbusServer::flush() {
-    if ( de_pin_ != nullptr  && sending) {
-        de_pin_->digital_write(true);
-        ESP_LOGD(TAG, "flush() sending: de_pin_ -> HIGH");
-        sending = false;
-    }
-    if ( re_pin_ != nullptr && receiving) {
-        re_pin_->digital_write(false);
-        ESP_LOGD(TAG, "flush() receiving: re_pin_ -> LOW");
-	receiving = false;
-    }
+  ESP_LOGD(TAG, "Flush!");
+  if ( this->sending ) {
+    this->set_re_pin(true);
     uart::UARTDevice::flush();
-    if ( re_pin_ != nullptr) {
-        re_pin_->digital_write(false);
-        ESP_LOGD(TAG, "after flush() receiving: re_pin_ -> LOW");
-    }
+    this->sending = false;
+  }
+  this->set_re_pin(false);
 }
 
-void ModbusServer::loop() { mb.task(); };
+void ModbusServer::loop() { 
+  if( !this->sending ) {
+    this->set_re_pin(false);
+  }
+  mb.task(); 
+};
+void ModbusServer::set_re_pin(bool val) {
+  if (this->flow_control_pin_ != nullptr) {
+    if (this->flow_control_pin_->digital_read() != val) {
+      ESP_LOGD(TAG, "Set Flow Pin %s", val ? "HIGH" : "LOW");
+      this->flow_control_pin_->digital_write(val);
+    }
+  }
+}
 }  // namespace modbus_server
 
 }  // namespace esphome

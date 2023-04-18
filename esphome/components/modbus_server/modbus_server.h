@@ -33,13 +33,7 @@ class ModbusServer : public esphome::uart::UARTDevice, public Component, public 
   /// @param address the slave address this instance will respond as
   void set_address(uint8_t address);
 
-  /// @brief Sets the DE pin and toggles it on read/write
-  /// @param pin_de is the pin to set LOW when transmitting
-  void set_de_pin(GPIOPin *de_pin);
-
-  /// @brief Sets the RE pin and toggles it on read/write
-  /// @param pin_re is the pin to set LOW when reading
-  void set_re_pin(GPIOPin *re_pin);
+  void set_flow_control_pin(GPIOPin *flow_control_pin) { this->flow_control_pin_ = flow_control_pin; }
 
   /// @brief Adds a new range of holding registers
   /// @param start_address Address of the first register
@@ -102,18 +96,20 @@ class ModbusServer : public esphome::uart::UARTDevice, public Component, public 
   void on_write_input_register(uint16_t address, cbOnReadWrite cb, uint16_t numregs = 1);
 
   // Stream implementation required by ModbusRTU library
-  size_t write(uint8_t);
+  size_t write(uint8_t byte);
+  size_t write(const uint8_t *data, size_t size);
   int available();
   int read();
   int peek();
   void flush();
+  float get_setup_priority() const;
+  void set_re_pin(bool val);
 
  private:
   ModbusRTU mb;  // ModbusRTU instance, the man behind the curtain
-  GPIOPin *re_pin_{nullptr};
-  GPIOPin *de_pin_{nullptr};
-  bool sending;
-  bool receiving;
+  GPIOPin *flow_control_pin_{nullptr};
+  bool sending{false};
+  bool receiving{true};
 };
 
 }  // namespace modbus_server
