@@ -16,7 +16,7 @@ uint32_t ModbusServer::baudRate() { return this->parent_->get_baud_rate(); }
 void ModbusServer::setup() { 
     mb.begin(this);
     if (re_pin_ != nullptr) {
-        re_pin_->digital_write(LOW);
+        re_pin_->digital_write(true);
         ESP_LOGD(TAG, "read(): re_pin_ -> LOW");
         receiving = true;
     }
@@ -32,7 +32,7 @@ void ModbusServer::set_re_pin(GPIOPin *re_pin) {
     if (re_pin != nullptr) {
       re_pin_ = re_pin;
       re_pin_->setup();
-      re_pin_->digital_write(LOW);
+      re_pin_->digital_write(false);
       ESP_LOGD(TAG, "set_re_pin(): re_pin_ -> LOW");
     }
 }
@@ -41,7 +41,7 @@ void ModbusServer::set_de_pin(GPIOPin *de_pin) {
   if (de_pin != nullptr) {
     de_pin_ = de_pin;
     de_pin_->setup();
-    de_pin_->digital_write(LOW);
+    de_pin_->digital_write(false);
     ESP_LOGD(TAG, "set_de_pin(): de_pin_ -> LOW");
   }
 }
@@ -87,7 +87,7 @@ void ModbusServer::on_write_input_register(uint16_t address, cbOnReadWrite cb, u
 // Stream class implementation:
 size_t ModbusServer::write(uint8_t data) {
     if (( de_pin_ != nullptr ) && !sending) {
-        de_pin_->digital_write(HIGH);
+        de_pin_->digital_write(true);
         ESP_LOGD(TAG, "write(): de_pin_ -> HIGH");
         sending = true;
     }
@@ -96,7 +96,7 @@ size_t ModbusServer::write(uint8_t data) {
 
 int ModbusServer::read() {
     if (re_pin_ != nullptr && !receiving) {
-        re_pin_->digital_write(LOW);
+        re_pin_->digital_write(false);
         ESP_LOGD(TAG, "read(): re_pin_ -> LOW");
         receiving = true;
     }
@@ -107,16 +107,20 @@ int ModbusServer::available() { return uart::UARTDevice::available(); }
 //int ModbusServer::read() { return uart::UARTDevice::read(); }
 int ModbusServer::peek() { return uart::UARTDevice::peek(); }
 void ModbusServer::flush() {
-    uart::UARTDevice::flush();
     if ( de_pin_ != nullptr  && sending) {
-        de_pin_->digital_write(LOW);
-        ESP_LOGD(TAG, "flush() sending: de_pin_ -> LOW");
+        de_pin_->digital_write(true);
+        ESP_LOGD(TAG, "flush() sending: de_pin_ -> HIGH");
         sending = false;
     }
     if ( re_pin_ != nullptr && receiving) {
-        re_pin_->digital_write(HIGH);
-        ESP_LOGD(TAG, "flush() receiving: re_pin_ -> HIGH");
+        re_pin_->digital_write(false);
+        ESP_LOGD(TAG, "flush() receiving: re_pin_ -> LOW");
 	receiving = false;
+    }
+    uart::UARTDevice::flush();
+    if ( re_pin_ != nullptr) {
+        re_pin_->digital_write(false);
+        ESP_LOGD(TAG, "after flush() receiving: re_pin_ -> LOW");
     }
 }
 
