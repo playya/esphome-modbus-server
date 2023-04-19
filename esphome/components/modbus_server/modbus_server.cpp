@@ -99,9 +99,13 @@ void ModbusServer::flush() {
   ESP_LOGD(TAG, "Flush!");
   if ( this->sending ) {
     this->set_re_pin(true);
+    ESP_LOGD(TAG, "Flush TX! avail: %i", uart::UARTDevice::available());
     uart::UARTDevice::flush();
     this->sending = false;
   }
+  ESP_LOGD(TAG, "Flush!");
+  uart::UARTDevice::flush();
+  ESP_LOGD(TAG, "Flush avail: %i", uart::UARTDevice::available());
   this->set_re_pin(false);
 }
 
