@@ -75,6 +75,7 @@ size_t ModbusServer::write(uint8_t data) {
   this->sending = true;
 
   uart::UARTDevice::write_byte(data);
+  this->flush();
 
   return 1;
 }
@@ -83,6 +84,7 @@ size_t ModbusServer::write(const uint8_t *data, size_t size) {
   this->set_re_pin(true);
   this->sending = true;
   uart::UARTDevice::write_array(data, size);
+  this->flush();
 
   return size;
 }
@@ -99,16 +101,9 @@ void ModbusServer::flush() {
   ESP_LOGD(TAG, "Flush!");
   if ( this->sending ) {
     this->set_re_pin(true);
-    auto hw_serial = this->get_hw_serial();
-    if ( hw_serial ) {
-      ESP_LOGD(TAG, "Flush HW TX! %i");
-      hw_serial->flush(true);
-    }
     this->sending = false;
-  } else {
-    ESP_LOGD(TAG, "Flush none hw!");
-    uart::UARTDevice::flush();
   }
+  uart::UARTDevice::flush();
   this->set_re_pin(false);
 }
 
